@@ -12,6 +12,7 @@ public class Servidor {
         Socket socket = serverSocket.accept();
         System.out.println("Cliente conectado");
 
+        //Essa parte inteira serve para ler oq o cliente enviar
         InputStreamReader inputReader = new InputStreamReader(socket.getInputStream());
         PrintStream saida = new PrintStream(socket.getOutputStream());
         BufferedReader reader = new BufferedReader(inputReader);
