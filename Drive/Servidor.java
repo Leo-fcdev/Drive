@@ -28,6 +28,7 @@ public class Servidor {
         }
     }
 
+    // Classe que trata conexão de cada cliente
     static class ClienteHandler implements Runnable{
         private Socket socket;
 
@@ -37,41 +38,67 @@ public class Servidor {
         @Override
         public void run(){
             try{
+
                 BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                PrintWriter saida = new PrintWriter(socket.getOutputStream());
+                PrintWriter saida = new PrintWriter(socket.getOutputStream(), true);
 
-                saida.println("Digite: LOGIN <usuario> <senha>");
-                saida.flush();
+                // Envia ao cliente intruções iniciais
+                saida.println("Bem-vindo");
 
-                String credenciais = reader.readLine();
-                if (credenciais == null || !credenciais.startsWith("LOGIN ")){
-                    saida.println("LOGIN_FAILED");
+                // Lê o comando enviado pelo cliente
+                String command = reader.readLine();
+                System.out.println("Comando recebido: " + command);
+                if (command == null){
+                    saida.println("Comando invalido");
                     socket.close();
                     return;
                 }
 
-                String[] partes = credenciais.split(" ");
-                if (partes.length != 3){
-                    saida.println("LOGIN_FAILED");
+                String[] partes = command.split(" ");
+                if (partes.length < 3) {
+                    saida.println("Comando inválido");
                     socket.close();
                     return;
                 }
 
+                String cmd = partes[0];
                 String usuario = partes[1];
                 String senha = partes[2];
 
-                if (users.containsKey(usuario) && users.get(usuario).equals(senha)){
-                    saida.println("LOGIN_OK");
-                    System.out.println("Usuario autenticado: " + usuario);
-                } else {
-                    saida.println("LOGIN_FAILED");
+                // Esse bloco é executado se o comando for LOGIN
+                if (cmd.equalsIgnoreCase("LOGIN")){
+                    if (users.containsKey(usuario) && users.get(usuario).equals(senha)){
+                        saida.println("LOGIN_OK");
+                        System.out.println("Usuario autenticado: " + usuario);
+                    } else {
+                        saida.println("LOGIN_FAILED");
+                        socket.close();
+                        return;
+                    }
+
+                // Esse é executado se o comando for REGISTER
+                } else if (cmd.equalsIgnoreCase("REGISTER")) {
+                    if (users.containsKey(usuario)) {
+                        saida.println("Usuário já cadastrado");
+                        socket.close();
+                        return;
+                    } else {
+                        users.put(usuario, senha);
+                        saida.println("Cadastro realizado com sucesso");
+                        saida.println("LOGIN_OK");
+                        System.out.println("Usuário cadastrado e autenticado" + usuario);
+                    }
+
+                // Caso nenhum comando valido seja chamado pelo cliente executa esse
+                } else{
+                    saida.println("Comando inválido");
                     socket.close();
                     return;
                 }
 
                 String mensagem;
                 while ((mensagem = reader.readLine()) != null){
-                    System.out.println("Mensagem de " + usuario + ": " + mensagem);
+                    System.out.println("Mensagem do cliente " + mensagem);
                     saida.println("Servidor: " + mensagem);
                 }
 

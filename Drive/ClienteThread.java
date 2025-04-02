@@ -18,12 +18,6 @@ public class ClienteThread extends Thread {
 
             while ((mensagem = reader.readLine()) != null);{
                 System.out.println(mensagem);
-            /*InputStreamReader inputReader = new InputStreamReader(socket.getInputStream());
-            BufferedReader reader = new BufferedReader(inputReader);
-            String x;
-            while ((x = reader.readLine()) != null){
-                System.out.println("Cliente: " + x);*/
-
             }
         } catch (Exception ex) {
             System.out.println("Conexão com o servidor encerrada.");
