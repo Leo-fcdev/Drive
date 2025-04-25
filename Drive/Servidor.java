@@ -2,6 +2,7 @@ package Drive;
 
 import java.io.*;
 import java.net.*;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -96,16 +97,50 @@ public class Servidor {
                     return;
                 }
 
-                String mensagem;
-                while ((mensagem = reader.readLine()) != null){
-                    System.out.println("Mensagem do cliente " + mensagem);
-                    saida.println("Servidor: " + mensagem);
+                String basePath = "files" + File.separator + usuario;
+                String[] tipos = {"PDF", "JPG", "TXT", "OUTROS"};
+                for (String tipo : tipos){
+                    File diretorio = new File(basePath + File.separator + tipo);
+                    if (!diretorio.exists()){
+                        diretorio.mkdirs();
+                    }
                 }
 
+                String linha;
+                while ((linha = reader.readLine()) != null){
+                    if (linha.equalsIgnoreCase("LIST")){
+                        listUserFiles(basePath, saida);
+                    } else {
+                        System.out.println("Mensagem de " + usuario + ": " + linha);
+                        saida.println("Servidor: " + linha);
+                    }
+                }
                 socket.close();
-
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+        private void listUserFiles(String basePath, PrintWriter saida){
+            File userDir = new File(basePath);
+            if (!userDir.exists()){
+                saida.println(("Nenhum arquivo encontrado"));
+            } else {
+                walkAndSend(userDir, userDir, saida);
+            }
+            saida.println("END-OF-LIST");
+        }
+
+        private void walkAndSend(File base, File diretorio, PrintWriter saida){
+            File[] files = diretorio.listFiles();
+            if (files != null){
+                for (File f : files){
+                    if (f.isDirectory()){
+                        walkAndSend(base, f, saida);
+                    } else {
+                        Path rel = base.toPath().relativize(f.toPath());
+                        saida.println(rel.toString());
+                    }
+                }
             }
         }
     }
