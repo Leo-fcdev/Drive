@@ -110,6 +110,55 @@ public class Servidor {
                 while ((linha = reader.readLine()) != null){
                     if (linha.equalsIgnoreCase("LIST")){
                         listUserFiles(basePath, saida);
+                    } else if (linha.startsWith("UPLOAD")) {
+                        String[] up = linha.split(" ", 3);
+                        String filename = up[1];
+                        long size = Long.parseLong(up[2]);
+                        String ext = filename.contains(".") ? filename.substring(filename.lastIndexOf('.') + 1).toUpperCase() : "";
+                        String tipo = switch (ext){
+                            case "PDF" -> "PDF";
+                            case "JPG", "JPEG", "PNG" -> "JPG";
+                            case "TXT" -> "TXT";
+                            default -> "OUTROS";
+                        };
+                        File outFile = new File(basePath + File.separator + tipo, filename);
+                        try (FileOutputStream fos = new FileOutputStream(outFile)){
+                            byte[] buffer = new byte[4096];
+                            long remaining = size;
+                            int read;
+                            InputStream is = socket.getInputStream();
+                            while (remaining > 0 && (read = is.read(buffer, 0, (int)Math.min(buffer.length, remaining))) != 1){
+                                fos.write(buffer, 0, read);
+                                remaining -= read;
+                            }
+                        }
+                        saida.println("UPLOAD_COMPLETED");
+                        System.out.println("Upload Concluído: " + filename);
+
+                    } else if (linha.startsWith("DOWNLOAD")) {
+                        String[] dl = linha.split(" ", 2);
+                        String filename = dl[1];
+                        File file = findFile(new  File(basePath), filename);
+                        if (file == null){
+                            saida.println("ARQUIVO_NAO_ENCONTRADO");
+                        }else {
+                            saida.println("DOWNLOAD_OK " + file.length());
+                            try (FileInputStream fis = new FileInputStream(file)){
+                                byte[] buffer = new byte[4096];
+                                int read;
+                                OutputStream os = socket.getOutputStream();
+                                while ((read = fis.read(buffer)) != -1){
+                                    os.write(buffer, 0, read);
+                                }
+                                os.flush();
+                            }
+                            System.out.println("Download concuído: " + filename);
+                        }
+
+                    } else if (linha.equalsIgnoreCase("EXIT")) {
+                        saida.println("BYE");
+                        break;
+
                     } else {
                         System.out.println("Mensagem de " + usuario + ": " + linha);
                         saida.println("Servidor: " + linha);
@@ -142,6 +191,18 @@ public class Servidor {
                     }
                 }
             }
+        }
+        private File findFile(File dir, String filename){
+            for (File f : dir.listFiles()){
+                if (f.isDirectory()){
+                    File res = findFile(f,filename);
+                    if (res != null) return res;
+                } else if (f.getName().equals(filename)) {
+                    return f;
+
+                }
+            }
+            return null;
         }
     }
 }
